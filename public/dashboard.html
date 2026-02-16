@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = { darkMode: 'class' }
+</script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 min-h-screen p-6">
+
+<div class="flex justify-between items-center">
+<h1 class="text-3xl font-bold dark:text-white">🌱 Carbon Dashboard</h1>
+<button onclick="toggleDark()" class="bg-black text-white px-4 py-2 rounded">
+Toggle Mode
+</button>
+</div>
+
+<div class="mt-8 bg-white dark:bg-gray-800 p-6 rounded-xl shadow">
+<h2 class="text-lg dark:text-white mb-4">บันทึกกิจกรรมวันนี้</h2>
+
+<label class="dark:text-white">⚡ ใช้ไฟ (kWh)</label>
+<input id="electricity" type="number" class="border p-2 w-full mb-3">
+
+<label class="dark:text-white">🚗 เดินทางกี่กิโล</label>
+<input id="transportKm" type="number" class="border p-2 w-full mb-3">
+
+<label class="dark:text-white">ประเภทรถ</label>
+<select id="transportType" class="border p-2 w-full mb-3">
+  <option value="car">รถยนต์</option>
+  <option value="motorcycle">มอเตอร์ไซค์</option>
+  <option value="bus">รถเมล์</option>
+  <option value="walk">เดิน</option>
+  <option value="bike">จักรยาน</option>
+</select>
+
+<label class="dark:text-white">🍜 เมนูวันนี้</label>
+<select id="foodType" class="border p-2 w-full mb-3">
+  <option value="noodle">ก๋วยเตี๋ยว</option>
+  <option value="khaokamoo">ข้าวขาหมู</option>
+  <option value="khaomankai">ข้าวมันไก่</option>
+  <option value="khaomudaeng">ข้าวหมูแดง</option>
+  <option value="kaprao">ข้าวผัดกะเพรา</option>
+  <option value="friedrice">ข้าวผัดไข่</option>
+  <option value="padthai">ผัดไทย</option>
+  <option value="somtam">ส้มตำ</option>
+  <option value="moo_ping">หมูปิ้ง + ข้าวเหนียว</option>
+  <option value="mookrata">หมูกระทะ</option>
+  <option value="shabu">ชาบู</option>
+</select>
+
+<button onclick="saveActivity()" 
+class="bg-green-500 text-white p-2 rounded w-full">
+บันทึก
+</button>
+
+<p id="result" class="mt-4 text-green-500 font-bold"></p>
+</div>
+
+<div class="mt-8">
+<h2 class="text-2xl dark:text-white">🏆 Ranking</h2>
+<div id="ranking"></div>
+</div>
+
+<script>
+const username = localStorage.getItem("username");
+if (!username) window.location = "login.html";
+
+function toggleDark() {
+  document.documentElement.classList.toggle("dark");
+}
+
+function saveActivity() {
+  fetch("/api/add-activity", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      username,
+      electricity: Number(document.getElementById("electricity").value),
+      transportKm: Number(document.getElementById("transportKm").value),
+      transportType: document.getElementById("transportType").value,
+      foodType: document.getElementById("foodType").value
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    document.getElementById("result").innerText =
+      "วันนี้คุณปล่อยคาร์บอน " + data.total.toFixed(2) + " kg CO2";
+    loadRanking();
+  })
+  .catch(err => {
+    console.error(err);
+    alert("เกิดข้อผิดพลาด กรุณาเช็ค server");
+  });
+}
+
+function loadRanking() {
+  fetch("/api/ranking")
+  .then(res => res.json())
+  .then(users => {
+    const rankingDiv = document.getElementById("ranking");
+    rankingDiv.innerHTML = "";
+
+    users.forEach((u, i) => {
+      rankingDiv.innerHTML += `
+        <div class="bg-white dark:bg-gray-800 p-3 rounded shadow mt-2">
+          ${i+1}. ${u.username} - ${u.totalCarbon} kg
+        </div>`;
+    });
+  });
+}
+
+loadRanking();
+</script>
+
+</body>
+</html>
